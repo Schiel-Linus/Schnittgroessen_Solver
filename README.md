@@ -1,6 +1,10 @@
 # 🏗️ Schnittgrößen-Solver
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://schnittgroessen-solver.streamlit.app/)
+
 Ein interaktives Python-Tool zur statischen Berechnung und Visualisierung von Einfeldträgern. 
+
+> **🌐 Live-Demo:** Du kannst das Programm direkt im Browser testen: [Hier klicken](https://schnittgroessen-solver.streamlit.app/)
 
 ## 📖 Projektbeschreibung
 Dieses Programm berechnet die Auflagerkräfte sowie die Verläufe von Querkraft und Biegemoment für statisch bestimmte Einfeldträger. Über ein interaktives Dashboard (Streamlit) können Balkenlängen sowie beliebige Punktlasten, Streckenlasten und freie Momente definiert werden. 
