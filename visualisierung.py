@@ -210,7 +210,7 @@ class Diagramm_Zeichner:
                 
             #Beschriftung über dem Symbol
             ax_skizze.text(          # Befehl um beliebigen Text ins Diagramm zu schreiben
-                abstand, 1.5,        # Koordinaten, x --> Abstand von linken Lager, y --> Text soll über dem Symbol stehen
+                abstand, 2.5,        # Koordinaten, x --> Abstand von linken Lager, y --> Text soll über dem Symbol stehen
                 f"{m_wert} kNm", # Kraft wird angezeigt
                 ha='center',         # Symbol wird exakt auf der X-Koordinate zentriert
                 va='center',         # Zentriert das Symbol exakt auf der Y-Koordinate

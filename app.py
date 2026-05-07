@@ -24,26 +24,112 @@ from visualisierung import Diagramm_Zeichner
 
 st.title("Schnittgrößenrechner")# Überschrift
 
+# ====================================================================
+# 1. ZWISCHENSPEICHER (SESSION STATE) INITIALISIEREN
+# ====================================================================
+# sodass Nutzer beim erstmaligen öffnen des Solvers direkt Schnittgrößen in Kombi mit eingegebenen Lasten sieht wird session state genutzt
+# da Schlüssel 'beispiel_geladen' beim ersten öffnen noch nicht im Speicher ist muss dieser erstmalig "befüllt" werden
 
-# Um die einzelnen Eingaben zu machen wird nachfolgend die sidebar in Streamlit genutzt
+#Erklärung zur Merker Logik ("beispiel_geladen"):
+# 'not in' prüft hier NICHT auf True oder False
+# es fragt Python lediglich: "Gibt es im "Aktenschrank" (session_state) überhaupt schon eine "Schublade" mit dem Etikett 'beispiel_geladen'?
+#
+# beim allerersten Start der App ist der Schrank leer --> Bedingung erfüllt, Python springt in den if Block
 
-# ---------------------------------------------------
-# Balkenlänge
-# ---------------------------------------------------
+if 'beispiel_geladen' not in st.session_state:
+    # jetzt "klebt" Python das "Etikett" 'beispiel_geladen' auf die Schublade und "legt" den Wert True hinein (True ist hierbei völlig irrelevant)
+    st.session_state.beispiel_geladen = True
+    #wenn Streamlit bei Nutzereingabe neu startet, sieht Python:
+    # das "Etikett" 'beispiel_geladen' existiert schon --> if Block wird übersprungen und Nutzereingaben bleiben sicher
+
+    #Beispiel Länge
+    st.session_state.aktuelle_laenge = 10.0
+
+    #Beispiel Lasten in den "Tresor legen":
+    #Punktlasten
+    st.session_state.punktlasten = pd.DataFrame([{"Position x [m]": 5, "Kraft F [kN]": 50.0}]) # hier wird kein columns davor benötigt weil Python ein dictionary übergeben bekommt
+    # hierbei nimmt es die Schlüssel (Texte vor dem Doppelpunkt) und verwendet diese als Spaltenüberschriften
+
+    #Streckenlasten
+    st.session_state.streckenlasten = pd.DataFrame([{"Start x [m]": 0.0, "Ende x [m]": 10.0, "Last q [kN/m]": -15.0}]) #analog zu Punktlasten
+
+    #freie Momente
+    st.session_state.freie_momente = st.session_state.df_moment = pd.DataFrame([{"Position x [m]": 3.0, "Kraft M [kNm]": -20.0}])
+
+
+# ====================================================================
+# 2. Reset Funktion und Button
+# ====================================================================
+# diese Funktion überschreibt den Zwischenspeicher gezielt, wenn der Nutzer den roten Button klickt
+
+def setze_auf_standard_zurueck():
+    st.session_state.aktuelle_laenge = 10.0
+    st.session_state.punktlasten = pd.DataFrame(columns=["Position x [m]", "Kraft F [kN]"])
+    st.session_state.streckenlasten = pd.DataFrame(columns=["Start x [m]", "Ende x [m]", "Last q [kN/m]"])
+    st.session_state.freie_momente = pd.DataFrame(columns=["Position x [m]", "Kraft M [kNm]"])
+    #da Pandas (Tabellen) hier leer sind (keine Startwerte) muss columns=[] davorstehen
+
+    # Die nachfolgenden Zeilen machen Folgendes:
+    # Wenn das interne Widget-Gedächtnis (Key) eines Eingabefeldes oder einer 
+    # Tabelle bereits im session_state existiert, wird dieser Key gezielt gelöscht
+    if "eingabe_laenge" in st.session_state:
+        del st.session_state["eingabe_laenge"]
+    if "tabelle_punktlasten" in st.session_state:
+        del st.session_state["tabelle_punktlasten"]
+    if "tabelle_strecken" in st.session_state:
+        del st.session_state["tabelle_strecken"]
+    if "tabelle_momente" in st.session_state:
+        del st.session_state["tabelle_momente"]
+
+        # Warum "Gedächtnis" (session state) löschen
+        # 1. Das Problem: Die Tabellen haben durch ihren eigenen key ihr eigenes "Kurzzeitgedächtnis" 
+        # --> sie behalten alte Eingaben, selbst wenn Hauptdatenbank session_state geleert wird
+        # 2. Folge: Ohne Löschung würden alte Werte als "Geister-Daten" wieder in der Eingabemaske auftauchen
+        # 3. Lösung: Mit 'del' werden diese Daten ("GEdächtnisse") gelöscht
+        # --> beim Neustart (rerun) werden Tabellen gezwungen leere Standard Tabellen zu akzeptieren
+
+
+
+st.sidebar.subheader("Neues Projekt")
+
+# wenn Button gedrückt wird wird Reset Funktion und App neu gestartet
+if st.sidebar.button("Eigener Balken (Alles löschen)", type="primary"):
+    setze_auf_standard_zurueck()#Funktion welche davor definiert wird wird aufgerufen
+    st.rerun()
+    # --- WARUM st.rerun()? ---
+    # Wenn Speicher im Hintergrund geleert wird, indem einfach session state überschrieben wird, checkt die Tabelle auf dem 
+    # Bildschirm das nicht sofort. Sie "wehrt" sich und behält stur die alten Zahlen.
+    # st.rerun() drückt quasi hart "F5" (Seite neu laden). 
+    # Code beginnt wieder von oben:
+    # Interpreter prüft ob in session state 'beispiel_geladen' enthalten ist --> ist enthalten durch den allerersten Durchlauf
+    # --> daher werden keine Beispielwerte mehr gesetzt und die session states sind mit den leeren Pandas befüllt welche beim Button drücken in der Funktion aufgerufen worden sind
+    # Nutzer kann selbst Eingaben vornehmen
+
+
+st.sidebar.divider() # Optischer Trennstrich
+
+
+# ====================================================================
+# 3. BALKENLÄNGE
+# ====================================================================
 
 st.sidebar.subheader("Balkenlänge definieren")
 Balken_Laenge = st.sidebar.number_input(
     "Balkenlänge [m]:",         
-    min_value=0.1,              # Darf nicht 0 oder negativ sein
-    value=10.0,                 # Startwert beim Öffnen der App
+    min_value=0.1,                          # Darf nicht 0 oder negativ sein
+    value=st.session_state.aktuelle_laenge, # Startwert wird aus dem Zwischenspeicher geholt
+    key="eingabe_laenge"
 )
+
+# Falls Nutzer Länge per Hand ändert, wird Speicher sofort akutalisiert
+st.session_state.aktuelle_laenge = Balken_Laenge
 
 #Konstruktor der Klasse Balken wird aufgerufen und die zuvor abgefragte Balken Länge wird übergeben
 neuer_Balken = Balken(Balken_Laenge)
 
 
 # ====================================================================
-# Nachfolgend werden die verschiedenen Lasten abgefragt
+# 4. LASTEN DEFINIEREN
 # ====================================================================
 
 st.sidebar.subheader("Lasten definieren")
@@ -56,10 +142,6 @@ st.sidebar.subheader("Lasten definieren")
 
 st.sidebar.markdown("**Punktlasten (F in kN, x in m)**") #Normaler Text, Sternchen machen diesen fett
 
-#Datentabelle
-punktlasten_eingabe_start = pd.DataFrame(columns=["Position x [m]", "Kraft F [kN]"]) #pd.DataFrame --> Befehl erstellt leere Tabelle
-#columns --> Spaltenköpfe werden definiert
-#Nutzer erhält zu Beginn leere Tabelle 
 
 #um Falscheingaben abzufangen werden Regeln festgelegt
 regeln_Punktlasten={
@@ -79,12 +161,14 @@ regeln_Punktlasten={
 }
 
 punktlasten_eingabe_neu = st.sidebar.data_editor(
-    punktlasten_eingabe_start,              # Basis Tabelle welche davor gebaut worden ist
+    st.session_state.punktlasten,           # Data Editor erhält Data Frame aus session state
     column_config=regeln_Punktlasten,       # fertiges Dictionary regeln_x wird an column_config übergeben --> vorher festgelegte Regeln werden für die Spalten berücksichtigt
     num_rows="dynamic",                     # Nutzer kann Zeilen hinzufügen und löschen
     use_container_width=True,               # Zieht Tabelle ausreichend breit
+    hide_index=True,                        # Index vor der Zeile wird nicht angezeigt
     key="tabelle_punktlasten"               # interner einmaliger Name
 )
+
 
 #speichern der eingegeben Tabellenwerten --> Punktlasten
 for index, row in punktlasten_eingabe_neu.iterrows(): #iterrows --> Tabelle wird Zeile für Zeile durchgegangen
@@ -123,10 +207,6 @@ for index, row in punktlasten_eingabe_neu.iterrows(): #iterrows --> Tabelle wird
 
 st.sidebar.markdown("**Streckenlasten (q in kN/m, x in m)**")
 
-#Datentabelle
-streckenlasten_eingabe_start = pd.DataFrame(columns=["Start x [m]", "Ende x [m]", "Last q [kN/m]"])
-#columns --> Spaltenköpfe werden definiert
-#Nutzer erhält zu Beginn leere Tabelle 
 
 #um Falscheingaben abzufangen werden Regeln festgelegt
 regeln_Streckenlasten = {
@@ -149,10 +229,11 @@ regeln_Streckenlasten = {
 }
 
 streckenlasten_eingabe_neu = st.sidebar.data_editor(
-    streckenlasten_eingabe_start,           # Basis Tabelle welche davor gebaut worden ist
+    st.session_state.streckenlasten,        # Data Editor erhält Data Frame aus session state
     column_config=regeln_Streckenlasten,    # fertiges Dictionary regeln_x wird an column_config übergeben --> vorher festgelegte Regeln werden für die Spalten berücksichtigt
     num_rows="dynamic",                     # Nutzer kann Zeilen hinzufügen und löschen
     use_container_width=True,               # Zieht Tabelle ausreichend breit
+    hide_index=True,                        # Index vor der Zeile wird nicht angezeigt
     key="tabelle_strecken"                  # interner einmaliger Name
 )
 
@@ -207,10 +288,6 @@ for index, row in streckenlasten_eingabe_neu.iterrows(): #iterrows --> Tabelle w
 
 st.sidebar.markdown("**Freie Momente (M in kNm, x in m)**")
 
-#Datentabelle
-freie_Momente_Eingabe_start = pd.DataFrame(columns=["Position x [m]", "Kraft M [kNm]"])
-#columns --> Spaltenköpfe werden definiert
-#Nutzer erhält zu Beginn leere Tabelle
 
 #um Falscheingaben abzufangen werden Regeln festgelegt
 regeln_freie_Momente = {
@@ -227,12 +304,15 @@ regeln_freie_Momente = {
 }
 
 freie_Momente_eingabe_neu = st.sidebar.data_editor(
-    freie_Momente_Eingabe_start,           # Basis Tabelle welche davor gebaut worden ist
+    st.session_state.freie_momente,        # Data Editor erhält Data Frame aus session state
     column_config=regeln_freie_Momente,    # fertiges Dictionary regeln_x wird an column_config übergeben --> vorher festgelegte Regeln werden für die Spalten berücksichtigt
     num_rows="dynamic",                    # Nutzer kann Zeilen hinzufügen und löschen
     use_container_width=True,              # Zieht Tabelle ausreichend breit
+    hide_index=True,                       # Index vor der Zeile wird nicht angezeigt
     key="tabelle_momente"                  # interner einmaliger Name
 )
+
+
 
 #speichern der eingegeben Tabellenwerten --> Streckenlasten
 for index, row in freie_Momente_eingabe_neu.iterrows(): #iterrows --> Tabelle wird Zeile für Zeile durchgegangen
@@ -268,9 +348,8 @@ for index, row in freie_Momente_eingabe_neu.iterrows(): #iterrows --> Tabelle wi
 
 
 # ====================================================================
-# Nachdem alle Lasten abgefragt/eingegeben worden sind können die Berechnungen für die Schnittgrößen durchgeführt werden
+# 5. BERECHNUNG
 # ====================================================================
-
 #Methode zur Lagerkraftberechnung wird aufgerufen
 neuer_Balken.berechne_Lagerkraefte()
 
@@ -282,7 +361,7 @@ x_Werte, Q_Werte, M_Werte = rechner.berechne_linien()
 
 
 # ====================================================================
-# Nachdem Berechnungen durchgeführt sind wird das Diagramm gezeichnet in die Streamlit Oberfläche integriert und die Extremwerte zusätzlich ausgegeben
+# Visualisierung und Präsentation der Extremwerte
 # ====================================================================
 
 
@@ -322,7 +401,3 @@ with col3:
 
 # f"{...:.2f}" --> Ergebnisse mit nur zwei Nachkommastellen
 
-
-
-#cd Tm_Solver
-#python -m streamlit run app.py
