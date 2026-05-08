@@ -6,6 +6,8 @@ Ein interaktives Python-Tool zur statischen Berechnung und Visualisierung von Ei
 
 > **🌐 Live-Demo:** Du kannst das Programm direkt im Browser testen: [Hier klicken](https://schnittgroessen-solver.streamlit.app/)
 
+![Dashboard Vorschau](assets/app_screenshot.png)
+
 ## 📖 Projektbeschreibung
 Dieses Programm berechnet die Auflagerkräfte sowie die Verläufe von Querkraft und Biegemoment für statisch bestimmte Einfeldträger. Über ein interaktives Dashboard (Streamlit) können Balkenlängen sowie beliebige Punktlasten, Streckenlasten und freie Momente definiert werden. 
 
