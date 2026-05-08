@@ -52,7 +52,7 @@ for index, row in punktlasten_eingabe_neu.iterrows():
     except (ValueError, TypeError):
         # Leere oder unvollständige Tabellenzellen sicher abfangen
         pass
-
+```
 
 ## 🚀 Ausblick & Geplante Features
 * **Analytische Momentenbestimmung:** Die Extremwerte werden derzeit numerisch am diskretisierten Array (1000 Punkte) ermittelt. Für das absolute Biegemomenten-Maximum ist künftig eine analytische Nullstellensuche der Querkraftfunktion denkbar, um die exakte Position zwischen den Diskretisierungspunkten zu finden. Die Querkraftmaxima würden aufgrund der Diskontinuitäten (Sprungstellen) weiterhin robust über die numerische Array-Suche bestimmt.
